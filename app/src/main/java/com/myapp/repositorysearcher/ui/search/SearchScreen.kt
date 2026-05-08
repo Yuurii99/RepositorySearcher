@@ -36,18 +36,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.myapp.repositorysearcher.R
 import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
-import com.myapp.repositorysearcher.ui.theme.RepositorySearcherTheme
 
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
-    onItemClick: (String, String) -> Unit,
+    onItemClick: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
@@ -72,7 +70,7 @@ fun SearchScreen(
 @Composable
 fun SearchContentView(
     uiState: SearchUiState,
-    onItemClick: (String, String) -> Unit
+    onItemClick: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -88,12 +86,7 @@ fun SearchContentView(
                     items(uiState.repositories) { repository ->
                         RepositoryItem(
                             repoItem = repository,
-                            onClick = {
-                                onItemClick(
-                                    repository.repoUrl,
-                                    repository.avatarUrl
-                                )
-                            }
+                            onItemClick = onItemClick
                         )
                     }
                 }
@@ -124,13 +117,13 @@ fun QueryInputField(
 @Composable
 fun RepositoryItem(
     repoItem: GitHubRepositoryEntity,
-    onClick: () -> Unit
+    onItemClick: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable(onClick = onClick)
+            .clickable(onClick = { onItemClick(repoItem.repoUrl) })
     ) {
         Row(
             modifier = Modifier
@@ -196,47 +189,5 @@ fun RepositoryItem(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewSearchScreen_Success() {
-    val mockRepos = listOf(
-        GitHubRepositoryEntity(
-            name = "tinyTetrisC++",
-            ownerName = "JetBrains",
-            avatarUrl = "https://...",
-            language = "The Kotlin Language",
-            stars = 4500,
-            repoUrl = "https://..."
-        ),
-        GitHubRepositoryEntity(
-            name = "React-tetris",
-            ownerName = "Kevin",
-            avatarUrl = "https://...",
-            language = "Kotlin",
-            stars = 3000,
-            repoUrl = "https://...",
-        )
-    )
-
-    RepositorySearcherTheme() {
-        SearchContentView(
-            uiState = SearchUiState.Success(mockRepos),
-            onItemClick = { _, _ -> }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewSearchScreen_Loading() {
-
-    RepositorySearcherTheme() {
-        SearchContentView(
-            uiState = SearchUiState.Loading,
-            onItemClick = { _, _ -> }
-        )
     }
 }
