@@ -67,4 +67,8 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.coil.compose)
     ksp(libs.hilt.compiler)
+
+    implementation(libs.squareup.okhttp3)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.network.core)
 }

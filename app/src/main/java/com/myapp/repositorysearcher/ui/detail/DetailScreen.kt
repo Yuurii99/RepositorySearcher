@@ -6,4 +6,5 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
-fun DetailScreen(url: String) {} // webviewで実装
+fun DetailScreen() {
+} // webviewで実装

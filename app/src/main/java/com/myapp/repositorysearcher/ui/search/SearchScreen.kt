@@ -1,9 +1,12 @@
 package com.myapp.repositorysearcher.ui.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,17 +33,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.myapp.repositorysearcher.R
 import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
+import com.myapp.repositorysearcher.ui.theme.RepositorySearcherTheme
 
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
-    onItemClick: (String) -> Unit,
+    onItemClick: (String, String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var query by remember { mutableStateOf("") }
@@ -50,30 +57,41 @@ fun SearchScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        TextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("リポジトリ検索ワード") },
-            trailingIcon = {
-                IconButton(onClick = { viewModel.repositorySearch(query) }) {
-                    Icon(painterResource(R.drawable.search), contentDescription = null)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
+        QueryInputField(
+            query = query,
+            onInputChange = { query = it },
+            onSearchClick = {
+                viewModel.repositorySearch(query)
+            }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        when (val state = uiState) {
+        SearchContentView(uiState, onItemClick)
+    }
+}
+
+@Composable
+fun SearchContentView(
+    uiState: SearchUiState,
+    onItemClick: (String, String) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        when (uiState) {
             is SearchUiState.Idle -> Text("検索ワードを入力してください")
             is SearchUiState.Loading -> CircularProgressIndicator()
-            is SearchUiState.Error -> Text("エラー: ${state.message}", color = Color.Red)
+            is SearchUiState.Error -> Text("エラー: ${uiState.message}", color = Color.Red)
             is SearchUiState.Success -> {
                 LazyColumn {
-                    items(state.repositories) { repository ->
+                    items(uiState.repositories) { repository ->
                         RepositoryItem(
                             repoItem = repository,
                             onClick = {
                                 onItemClick(
-                                    repository.repoUrl
+                                    repository.repoUrl,
+                                    repository.avatarUrl
                                 )
                             }
                         )
@@ -81,15 +99,32 @@ fun SearchScreen(
                 }
             }
         }
-
     }
+}
+
+@Composable
+fun QueryInputField(
+    query: String,
+    onInputChange: (String) -> Unit,
+    onSearchClick: (String) -> Unit
+) {
+    TextField(
+        value = query,
+        onValueChange = { onInputChange(it) },
+        placeholder = { Text("リポジトリ検索ワード") },
+        trailingIcon = {
+            IconButton(onClick = { onSearchClick(query) }) {
+                Icon(painterResource(R.drawable.search), contentDescription = null)
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
 fun RepositoryItem(
     repoItem: GitHubRepositoryEntity,
     onClick: () -> Unit
-    // onItemClick 詳細画面遷移
 ) {
     Card(
         modifier = Modifier
@@ -98,20 +133,110 @@ fun RepositoryItem(
             .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         )
         {
             AsyncImage(
                 model = repoItem.avatarUrl,
+                contentScale = ContentScale.Crop,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp).clip(CircleShape)
+                error = painterResource(R.drawable.no_avatar),
+                placeholder = painterResource(R.drawable.no_avatar),
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outline)
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(text = repoItem.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = "★ ${repoItem.stars}", style= MaterialTheme.typography.bodySmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = repoItem.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = repoItem.ownerName,
+                        style = MaterialTheme.typography.bodySmall,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = repoItem.language,
+                        style = MaterialTheme.typography.bodySmall,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = "★ ${repoItem.stars}",
+                        style = MaterialTheme.typography.bodySmall,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                    )
+                }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewSearchScreen_Success() {
+    val mockRepos = listOf(
+        GitHubRepositoryEntity(
+            name = "tinyTetrisC++",
+            ownerName = "JetBrains",
+            avatarUrl = "https://...",
+            language = "The Kotlin Language",
+            stars = 4500,
+            repoUrl = "https://..."
+        ),
+        GitHubRepositoryEntity(
+            name = "React-tetris",
+            ownerName = "Kevin",
+            avatarUrl = "https://...",
+            language = "Kotlin",
+            stars = 3000,
+            repoUrl = "https://...",
+        )
+    )
+
+    RepositorySearcherTheme() {
+        SearchContentView(
+            uiState = SearchUiState.Success(mockRepos),
+            onItemClick = { _, _ -> }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewSearchScreen_Loading() {
+
+    RepositorySearcherTheme() {
+        SearchContentView(
+            uiState = SearchUiState.Loading,
+            onItemClick = { _, _ -> }
+        )
     }
 }

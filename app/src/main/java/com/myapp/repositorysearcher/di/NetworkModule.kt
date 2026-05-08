@@ -9,6 +9,8 @@ import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 
 @Module
@@ -19,15 +21,27 @@ object NetworkModule {
     fun provideJson(): Json = Json {
         ignoreUnknownKeys = true // 知らないキーは無視
         coerceInputValues = true // nullの場合はデフォルト値が入る
-        isLenient = true // ""で囲われてない値も許可される？
+        isLenient = true
     }
+
     @Provides
     @Singleton
-    fun provideRetrofit(json: Json): Retrofit {
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(json: Json, okHttpClient: OkHttpClient): Retrofit {
         val contentType = "application/json".toMediaType()
 
         return Retrofit.Builder()
             .baseUrl("https://api.github.com/")
+            .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
     }

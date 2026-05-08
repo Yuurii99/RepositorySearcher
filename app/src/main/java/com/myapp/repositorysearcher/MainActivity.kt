@@ -35,15 +35,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RepositorySearcherApp(modifier: Modifier = Modifier) {
     SearchScreen(
-        onItemClick = { url ->
-            println("Selected URL: $url")},
+        onItemClick = { url, avatarUrl -> // detailに飛ばす処理
+            println("Selected URL: $url")
+            println("Avatar URL: $avatarUrl")
+        },
     )
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RepositorySearcherTheme {
-    }
 }
