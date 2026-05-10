@@ -1,27 +1,39 @@
 package com.myapp.repositorysearcher.ui.utils
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.myapp.repositorysearcher.R
 import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
+import com.myapp.repositorysearcher.ui.search.QueryInputField
+import com.myapp.repositorysearcher.ui.search.RepositoryItem
 import com.myapp.repositorysearcher.ui.search.SearchContentView
 import com.myapp.repositorysearcher.ui.search.SearchUiState
-import com.myapp.repositorysearcher.ui.theme.RepositorySearcherTheme
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewSearchScreen_Loading() {
-    RepositorySearcherTheme() {
-        SearchContentView(
-            uiState = SearchUiState.Loading,
-            onItemClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
 @Composable
 fun PreviewSearchScreen_Success() {
-    val mockRepos = listOf(
+    val mockRepos = List(20) {
         GitHubRepositoryEntity(
             name = "tinyTetrisC++",
             ownerName = "JetBrains",
@@ -29,21 +41,62 @@ fun PreviewSearchScreen_Success() {
             language = "The Kotlin Language",
             stars = 4500,
             repoUrl = "https://..."
-        ),
-        GitHubRepositoryEntity(
-            name = "React-tetris",
-            ownerName = "Kevin",
-            avatarUrl = "https://...",
-            language = "Kotlin",
-            stars = 3000,
-            repoUrl = "https://...",
         )
-    )
+    }
 
-    RepositorySearcherTheme() {
-        SearchContentView(
-            uiState = SearchUiState.Success(mockRepos),
-            onItemClick = {}
-        )
+    val uiState = SearchUiState.Success(mockRepos)
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(all = 16.dp)
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(60.dp))
+                    Icon(
+                        painterResource(R.drawable.octocat),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp)
+                            .size(120.dp)
+                            .align(Alignment.Center)
+                    )
+                }
+                stickyHeader {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.background,
+                        tonalElevation = 2.dp
+                    ) {
+                        QueryInputField(
+                            onSearchClick = { }
+                        )
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.padding(16.dp))
+                }
+                if (uiState is SearchUiState.Success) {
+                    items(uiState.repositories) { repository ->
+                        RepositoryItem(
+                            repoItem = repository,
+                            onItemClick = {}
+                        )
+                    }
+                } else {
+                    item {
+                        SearchContentView(uiState)
+                    }
+                }
+            }
+        }
     }
 }

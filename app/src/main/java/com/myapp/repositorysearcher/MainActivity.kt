@@ -4,9 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -27,15 +24,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RepositorySearcherTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    RepositorySearcherApp(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                RepositorySearcherApp(
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun RepositorySearcherApp(modifier: Modifier = Modifier) {
@@ -49,13 +44,14 @@ fun RepositorySearcherApp(modifier: Modifier = Modifier) {
                 }
             )
         }
-        composable("detail/{url}",
+        composable(
+            "detail/{url}",
             arguments = listOf(navArgument("url") { type = NavType.StringType })
-        ) {backStackEntry ->
+        ) { backStackEntry ->
             val url = backStackEntry.arguments?.getString("url") ?: ""
             DetailScreen(
                 url = url,
-                onBack = { navController.popBackStack() }
+                goBackSearchScreen = { navController.popBackStack() }
             )
         }
     }

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,11 +29,14 @@ import androidx.core.net.toUri
 @Composable
 fun DetailScreen(
     url: String,
-    onBack: () -> Unit // トップバーを作って戻るを実装
+    goBackSearchScreen: () -> Unit
 ) {
     val context = LocalContext.current
+    var onBack by remember { mutableStateOf(false) }
     var showAlert by remember { mutableStateOf(false) }
     var pendingUrl by remember { mutableStateOf("") }
+
+    BackHandler(enabled = true, onBack = { onBack = true })
 
     AndroidView(
         modifier = Modifier
@@ -58,8 +62,16 @@ fun DetailScreen(
                 settings.javaScriptEnabled = true
                 loadUrl(url)
             }
-        }, update = { // webView ->
-            // 必要があればWebViewの更新処理
+        }, update = { webView ->
+            when {
+                onBack && webView.canGoBack() -> {
+                    onBack = false
+                    webView.goBack()
+                }
+                onBack && !webView.canGoBack() -> {
+                    goBackSearchScreen()
+                }
+            }
         })
     OpenBrowserAlert(
         showAlert,

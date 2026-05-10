@@ -3,10 +3,11 @@ package com.myapp.repositorysearcher.ui.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,11 +17,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -34,7 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -47,30 +54,75 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     onItemClick: (String) -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    var query by remember { mutableStateOf("") }
+    val delegateUiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        QueryInputField(
-            query = query,
-            onInputChange = { query = it },
-            onSearchClick = {
-                viewModel.repositorySearch(query)
+    Scaffold(
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        val uiState = delegateUiState
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(all = 16.dp)
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(60.dp))
+                    Icon(
+                        painterResource(R.drawable.octocat),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp)
+                            .size(120.dp)
+                            .align(Alignment.Center)
+                    )
+//                    Text(
+//                        text = "Repository Searcher",
+//                        style = MaterialTheme.typography.displayMedium,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(bottom = 20.dp),
+//                        textAlign = TextAlign.Center
+//                    )
+                }
+                stickyHeader {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.background,
+                        tonalElevation = 2.dp
+                    ) {
+                        QueryInputField(
+                            onSearchClick = { viewModel.repositorySearch(it) }
+                        )
+                    }
+                }
+                item {
+                    Spacer(modifier = Modifier.padding(16.dp))
+                }
+                if (uiState is SearchUiState.Success) {
+                    items(uiState.repositories) { repository ->
+                        RepositoryItem(
+                            repoItem = repository,
+                            onItemClick = onItemClick
+                        )
+                    }
+                } else {
+                    item {
+                        SearchContentView(uiState)
+                    }
+                }
             }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        SearchContentView(uiState, onItemClick)
+        }
     }
 }
 
 @Composable
 fun SearchContentView(
     uiState: SearchUiState,
-    onItemClick: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -81,36 +133,36 @@ fun SearchContentView(
             is SearchUiState.Idle -> Text("検索ワードを入力してください")
             is SearchUiState.Loading -> CircularProgressIndicator()
             is SearchUiState.Error -> Text("エラー: ${uiState.message}", color = Color.Red)
-            is SearchUiState.Success -> {
-                LazyColumn {
-                    items(uiState.repositories) { repository ->
-                        RepositoryItem(
-                            repoItem = repository,
-                            onItemClick = onItemClick
-                        )
-                    }
-                }
-            }
+            is SearchUiState.Success -> {}
         }
     }
 }
 
 @Composable
 fun QueryInputField(
-    query: String,
-    onInputChange: (String) -> Unit,
-    onSearchClick: (String) -> Unit
+    onSearchClick: (String) -> Unit,
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var query by remember { mutableStateOf("") }
+
     TextField(
         value = query,
-        onValueChange = { onInputChange(it) },
+        onValueChange = { query = it },
         placeholder = { Text("リポジトリ検索ワード") },
         trailingIcon = {
-            IconButton(onClick = { onSearchClick(query) }) {
+            IconButton(onClick = {
+                onSearchClick(query)
+                keyboardController?.hide()
+            }) {
                 Icon(painterResource(R.drawable.search), contentDescription = null)
             }
         },
         modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = {
+            onSearchClick(query)
+            keyboardController?.hide()
+        })
     )
 }
 
@@ -169,7 +221,6 @@ fun RepositoryItem(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(
                     modifier = Modifier
-                        .fillMaxHeight()
                         .weight(1f),
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.SpaceBetween
