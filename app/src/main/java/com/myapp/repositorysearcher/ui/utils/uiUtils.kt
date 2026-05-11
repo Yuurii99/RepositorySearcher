@@ -60,35 +60,35 @@ fun PreviewSearchScreen_Success() {
     Scaffold(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        AlertDialog(
-            onDismissRequest = { },
-            confirmButton = {
-                TextButton(onClick = {  }) { Text("閉じる") }
-            },
-            title = { Text("ソート順を選択") },
-            text = {
-                Column {
-                    ListItem(
-                        headlineContent = { Text("スター数：多い順") },
-                        leadingContent = { Icon(painterResource(R.drawable.arrow_upward), null) },
-                        modifier = Modifier.clickable {
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent
-                        )
-                    )
-                    ListItem(
-                        headlineContent = { Text("スター数：少ない順") },
-                        leadingContent = { Icon(painterResource(R.drawable.arrow_downward), null) },
-                        modifier = Modifier.clickable {
-                        },
-                        colors = ListItemDefaults.colors(
-                            containerColor = Color.Transparent
-                        )
-                    )
-                }
-            }
-        )
+//        AlertDialog(
+//            onDismissRequest = { },
+//            confirmButton = {
+//                TextButton(onClick = {  }) { Text("閉じる") }
+//            },
+//            title = { Text("ソート順を選択") },
+//            text = {
+//                Column {
+//                    ListItem(
+//                        headlineContent = { Text("スター数：多い順") },
+//                        leadingContent = { Icon(painterResource(R.drawable.arrow_upward), null) },
+//                        modifier = Modifier.clickable {
+//                        },
+//                        colors = ListItemDefaults.colors(
+//                            containerColor = Color.Transparent
+//                        )
+//                    )
+//                    ListItem(
+//                        headlineContent = { Text("スター数：少ない順") },
+//                        leadingContent = { Icon(painterResource(R.drawable.arrow_downward), null) },
+//                        modifier = Modifier.clickable {
+//                        },
+//                        colors = ListItemDefaults.colors(
+//                            containerColor = Color.Transparent
+//                        )
+//                    )
+//                }
+//            }
+//        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -139,7 +139,9 @@ fun PreviewSearchScreen_Success() {
                     items(uiState.repositories) { repository ->
                         RepositoryItem(
                             repoItem = repository,
-                            onItemClick = {}
+                            isSelected = false,
+                            onItemClick = {},
+                            onLongClick = {},
                         )
                     }
                 } else {

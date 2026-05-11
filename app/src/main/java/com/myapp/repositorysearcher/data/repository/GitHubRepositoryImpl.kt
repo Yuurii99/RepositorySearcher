@@ -19,10 +19,6 @@ class GitHubRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getRepositoryDetails(htmlUrl: String) {
-        // TODO detail実装待ち
-    }
-
     private fun RepositoryDto.toDomain(): GitHubRepositoryEntity {
         return GitHubRepositoryEntity(
             name = this.name,

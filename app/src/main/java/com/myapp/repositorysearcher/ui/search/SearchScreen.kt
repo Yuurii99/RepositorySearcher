@@ -1,7 +1,15 @@
 package com.myapp.repositorysearcher.ui.search
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +29,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -32,6 +43,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,18 +66,49 @@ import coil3.compose.AsyncImage
 import com.myapp.repositorysearcher.R
 import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     onItemClick: (String) -> Unit,
 ) {
-    val delegateUiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     var showSortDialog by remember { mutableStateOf(false) }
+    val isEditMode = (uiState as? SearchUiState.Success)?.isEditMode ?: false
+    val currentUiState = uiState
 
+    BackHandler(enabled = isEditMode) {
+        viewModel.clearEditUiState()
+    }
     Scaffold(
+        topBar = {
+            if (isEditMode) {
+                TopAppBar(
+                    title = { Text("${(currentUiState as SearchUiState.Success).selectedIds.size} 件選択中") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.clearEditUiState() }) {
+                            Icon(
+                                painterResource(R.drawable.search),
+                                contentDescription = "編集モード解除"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
+        },
+        floatingActionButton = {
+            if (isEditMode) {
+                FloatingActionButton(onClick = { viewModel.saveSelectedItems() }) {
+                    Icon(painterResource(R.drawable.favorite), contentDescription = null)
+                }
+            }
+        },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        val uiState = delegateUiState
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -101,30 +145,42 @@ fun SearchScreen(
                     }
                 }
                 stickyHeader {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.background,
-                        tonalElevation = 2.dp
+                    AnimatedVisibility(
+                        visible = !isEditMode,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
                     ) {
-                        QueryInputField(
-                            onSearchClick = { viewModel.repositorySearch(it) }
-                        )
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            color = MaterialTheme.colorScheme.background,
+                            tonalElevation = 2.dp
+                        ) {
+                            QueryInputField(
+                                onSearchClick = { viewModel.repositorySearch(it) }
+                            )
+                        }
                     }
                 }
-                item {
-                    Spacer(modifier = Modifier.padding(16.dp))
-                }
-                if (uiState is SearchUiState.Success) {
-                    items(uiState.repositories) { repository ->
+
+                if (currentUiState is SearchUiState.Success) { // Lazy入れ子できない
+                    items(currentUiState.repositories) { repo ->
                         RepositoryItem(
-                            repoItem = repository,
-                            onItemClick = onItemClick
+                            repoItem = repo,
+                            isSelected = currentUiState.selectedIds.contains(repo.repoUrl),
+                            onItemClick = {
+                                if (currentUiState.isEditMode) {
+                                    viewModel.toggleSelection(repo.repoUrl)
+                                } else {
+                                    onItemClick(repo.repoUrl) // repoURLに遷移
+                                }
+                            },
+                            onLongClick = {
+                                viewModel.toggleSelection(repo.repoUrl)
+                            }
                         )
                     }
                 } else {
-                    item {
-                        SearchContentView(uiState)
-                    }
+                    item { SearchContentView(currentUiState) }
                 }
             }
         }
@@ -225,74 +281,91 @@ fun QueryInputField(
 @Composable
 fun RepositoryItem(
     repoItem: GitHubRepositoryEntity,
-    onItemClick: (String) -> Unit
+    isSelected: Boolean,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable(onClick = { onItemClick(repoItem.repoUrl) })
-    ) {
-        Row(
+    Box {
+        Card(
             modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        )
-        {
-            AsyncImage(
-                model = repoItem.avatarUrl,
-                contentScale = ContentScale.Crop,
-                contentDescription = null,
-                error = painterResource(R.drawable.no_avatar),
-                placeholder = painterResource(R.drawable.no_avatar),
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outline)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .combinedClickable(
+                    onClick = onItemClick,
+                    onLongClick = onLongClick,
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+            ),
+            border = if (isSelected) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                null
+            }
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-
-                ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = repoItem.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = repoItem.ownerName,
-                        style = MaterialTheme.typography.bodySmall,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(
+            )
+            {
+                AsyncImage(
+                    model = repoItem.avatarUrl,
+                    contentScale = ContentScale.Crop,
+                    contentDescription = null,
+                    error = painterResource(R.drawable.no_avatar),
+                    placeholder = painterResource(R.drawable.no_avatar),
                     modifier = Modifier
-                        .weight(1f),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = repoItem.language,
-                        style = MaterialTheme.typography.bodySmall,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = "★ ${repoItem.stars}",
-                        style = MaterialTheme.typography.bodySmall,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.outline)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+
+                    ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = repoItem.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = repoItem.ownerName,
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = repoItem.language,
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = "★ ${repoItem.stars}",
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
