@@ -19,14 +19,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -55,6 +59,7 @@ fun SearchScreen(
     onItemClick: (String) -> Unit,
 ) {
     val delegateUiState by viewModel.uiState.collectAsState()
+    var showSortDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
@@ -80,14 +85,20 @@ fun SearchScreen(
                             .size(120.dp)
                             .align(Alignment.Center)
                     )
-//                    Text(
-//                        text = "Repository Searcher",
-//                        style = MaterialTheme.typography.displayMedium,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(bottom = 20.dp),
-//                        textAlign = TextAlign.Center
-//                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(
+                            onClick = { showSortDialog = true },
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.sort_icon),
+                                contentDescription = "Sort",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
                 stickyHeader {
                     Surface(
@@ -116,6 +127,51 @@ fun SearchScreen(
                     }
                 }
             }
+        }
+        if (showSortDialog) {
+            AlertDialog(
+                onDismissRequest = { showSortDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showSortDialog = false }) { Text("閉じる") }
+                },
+                title = { Text("ソート順を選択") },
+                text = {
+                    Column {
+                        ListItem(
+                            headlineContent = { Text("スター数：多い順") },
+                            leadingContent = {
+                                Icon(
+                                    painterResource(R.drawable.arrow_downward),
+                                    null
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                viewModel.updateSortOrder(SearchViewModel.SortOrder.STARS_DESC)
+                                showSortDialog = false
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent
+                            )
+                        )
+                        ListItem(
+                            headlineContent = { Text("スター数：少ない順") },
+                            leadingContent = {
+                                Icon(
+                                    painterResource(R.drawable.arrow_upward),
+                                    null
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                viewModel.updateSortOrder(SearchViewModel.SortOrder.STARS_ASC)
+                                showSortDialog = false
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent
+                            )
+                        )
+                    }
+                }
+            )
         }
     }
 }
