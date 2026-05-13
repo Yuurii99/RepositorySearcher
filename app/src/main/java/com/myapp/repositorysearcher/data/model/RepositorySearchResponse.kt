@@ -11,6 +11,7 @@ data class RepositorySearchResponse(
 // 「検索結果リスト」の要素には、各リポジトリの「リポジトリ名」・「作者/組織名」・「言語名」・「スター数」が表示されていること。
 @Serializable
 data class RepositoryDto(
+    val id: Int, // リポID
     val name: String, // リポジトリ名
     val owner: OwnerDto, // 作者/組織名 + アバター画像URL
     val language: String?, // プログラミング言語名

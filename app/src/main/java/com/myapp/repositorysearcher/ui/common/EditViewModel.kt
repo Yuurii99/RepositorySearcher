@@ -1,6 +1,8 @@
 package com.myapp.repositorysearcher.ui.common
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
 import com.myapp.repositorysearcher.domain.repository.GitHubRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +17,7 @@ abstract class EditViewModel : ViewModel() {
     private val _editUiState = MutableStateFlow<EditUiState>(EditUiState())
     val editUiState: StateFlow<EditUiState> = _editUiState.asStateFlow()
 
-    fun toggleSelection(id: String) {
+    fun toggleSelection(id: Int) {
         val currentSelected = _editUiState.value.selectedIds
         val newSelected =
             if (currentSelected.contains(id)) {
@@ -27,6 +29,7 @@ abstract class EditViewModel : ViewModel() {
             selectedIds = newSelected,
             isEditMode = newSelected.isNotEmpty()
         )
+        println("Select Repo Id : $id")
     }
 
     fun clearEditUiState() {

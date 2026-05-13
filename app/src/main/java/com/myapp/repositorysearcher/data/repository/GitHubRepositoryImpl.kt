@@ -21,6 +21,7 @@ class GitHubRepositoryImpl @Inject constructor(
 
     private fun RepositoryDto.toDomain(): GitHubRepositoryEntity {
         return GitHubRepositoryEntity(
+            id = this.id,
             name = this.name,
             ownerName = this.owner.login,
             avatarUrl = this.owner.avatarUrl,

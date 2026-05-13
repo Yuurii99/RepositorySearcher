@@ -75,7 +75,7 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showSortDialog by remember { mutableStateOf(false) }
     val isEditMode = (uiState as? SearchUiState.Success)?.isEditMode ?: false
-    val currentUiState = uiState
+    val isFavoriteMode = viewModel.isFavoriteMode.collectAsState().value
 
     BackHandler(enabled = isEditMode) {
         viewModel.clearEditUiState()
@@ -84,12 +84,12 @@ fun SearchScreen(
         topBar = {
             if (isEditMode) {
                 TopAppBar(
-                    title = { Text("${(currentUiState as SearchUiState.Success).selectedIds.size} 件選択中") },
+                    title = { Text("${(uiState as SearchUiState.Success).selectedIds.size} 件選択中") },
                     navigationIcon = {
                         IconButton(onClick = { viewModel.clearEditUiState() }) {
                             Icon(
-                                painterResource(R.drawable.search),
-                                contentDescription = "編集モード解除"
+                                painterResource(R.drawable.check),
+                                contentDescription = "編集モード解除",
                             )
                         }
                     },
@@ -103,12 +103,24 @@ fun SearchScreen(
         floatingActionButton = {
             if (isEditMode) {
                 FloatingActionButton(onClick = { viewModel.saveSelectedItems() }) {
-                    Icon(painterResource(R.drawable.favorite), contentDescription = null)
+                    if (isFavoriteMode) {
+                        Icon(
+                            painterResource(R.drawable.delete),
+                            contentDescription = "お気に入りから削除"
+                        )
+                    } else {
+                        Icon(
+                            painterResource(R.drawable.favorite),
+                            contentDescription = "お気に入りに登録"
+                        )
+                    }
+
                 }
             }
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
+        val currentUiState = uiState
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -119,7 +131,6 @@ fun SearchScreen(
                 contentPadding = PaddingValues(all = 16.dp)
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(60.dp))
                     Icon(
                         painterResource(R.drawable.octocat),
                         contentDescription = null,
@@ -131,8 +142,27 @@ fun SearchScreen(
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                if (isFavoriteMode) MaterialTheme.colorScheme.primaryContainer
+                                else Color.Transparent
+                            )
+                        ) {
+                            IconButton(
+                                onClick = { viewModel.toggleFavoriteMode() }
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.favorite),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = { showSortDialog = true },
                         ) {
@@ -146,12 +176,14 @@ fun SearchScreen(
                 }
                 stickyHeader {
                     AnimatedVisibility(
-                        visible = !isEditMode,
+                        visible = !isEditMode && !isFavoriteMode,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
                             color = MaterialTheme.colorScheme.background,
                             tonalElevation = 2.dp
                         ) {
@@ -162,25 +194,27 @@ fun SearchScreen(
                     }
                 }
 
-                if (currentUiState is SearchUiState.Success) { // Lazy入れ子できない
-                    items(currentUiState.repositories) { repo ->
+                if (currentUiState is SearchUiState.Success) { // Lazy入れ子回避のためここでitems
+                    items(currentUiState.repositories, key = { it.id }) { repo ->
                         RepositoryItem(
                             repoItem = repo,
-                            isSelected = currentUiState.selectedIds.contains(repo.repoUrl),
+                            isSelected = currentUiState.selectedIds.contains(repo.id),
                             onItemClick = {
                                 if (currentUiState.isEditMode) {
-                                    viewModel.toggleSelection(repo.repoUrl)
+                                    viewModel.toggleSelection(repo.id)
                                 } else {
                                     onItemClick(repo.repoUrl) // repoURLに遷移
                                 }
                             },
                             onLongClick = {
-                                viewModel.toggleSelection(repo.repoUrl)
+                                viewModel.toggleSelection(repo.id)
                             }
                         )
                     }
                 } else {
-                    item { SearchContentView(currentUiState) }
+                    item {
+                        SearchContentView(currentUiState, isFavoriteMode)
+                    }
                 }
             }
         }
@@ -235,6 +269,7 @@ fun SearchScreen(
 @Composable
 fun SearchContentView(
     uiState: SearchUiState,
+    isFavoriteMode: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -242,10 +277,13 @@ fun SearchContentView(
         verticalArrangement = Arrangement.Center
     ) {
         when (uiState) {
-            is SearchUiState.Idle -> Text("検索ワードを入力してください")
+            is SearchUiState.Idle -> Text(
+                if (isFavoriteMode) "お気に入りしたリポジトリはありません"
+                else "検索ワードを入力してください"
+            )
             is SearchUiState.Loading -> CircularProgressIndicator()
             is SearchUiState.Error -> Text("エラー: ${uiState.message}", color = Color.Red)
-            is SearchUiState.Success -> {}
+            is SearchUiState.Success -> {} // LazyColumn入れ子できない
         }
     }
 }

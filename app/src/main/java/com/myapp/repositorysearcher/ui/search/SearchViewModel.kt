@@ -29,24 +29,43 @@ class SearchViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     private val _sortOrder = MutableStateFlow<SortOrder>(SortOrder.STARS_DESC)
 
+    private val _isFavoriteMode = MutableStateFlow(false)
+    val isFavoriteMode = _isFavoriteMode.asStateFlow()
+
+    private val favoriteMockRepos = List(20) {
+        GitHubRepositoryEntity(
+            id = it,
+            name = "favorite repo",
+            ownerName = "JetBrains",
+            avatarUrl = "https://...",
+            language = "The Kotlin Language",
+            stars = it + 100,
+            repoUrl = "https://...${it + 100}"
+        )
+    }
+
     val uiState: StateFlow<SearchUiState> = combine(
         _rawSearchResult,
         _status,
         _sortOrder,
-        editUiState
-    ) { result, status, order, editUiState ->
+        editUiState,
+        _isFavoriteMode
+    ) { result, status, order, editUiState, isFavMode ->
+        val currentList = if (isFavMode) favoriteMockRepos else result // mockReposはlocal DBから持ってくる物と置換
+
         when (status) {
             is Status.Loading -> SearchUiState.Loading
             is Status.Error -> SearchUiState.Error(status.message)
             is Status.Success -> {
                 val sortedList = when (order) {
-                    SortOrder.STARS_DESC -> result.sortedByDescending { it.stars }
-                    SortOrder.STARS_ASC -> result.sortedBy { it.stars }
+                    SortOrder.STARS_DESC -> currentList.sortedByDescending { it.stars }
+                    SortOrder.STARS_ASC -> currentList.sortedBy { it.stars }
                 }
                 SearchUiState.Success(
                     repositories = sortedList,
                     selectedIds = editUiState.selectedIds,
-                    isEditMode = editUiState.isEditMode
+                    isEditMode = editUiState.isEditMode,
+                    isFavoriteMode = isFavMode
                 )
             }
 
@@ -65,6 +84,10 @@ class SearchViewModel @Inject constructor(
 
     fun updateSortOrder(order: SortOrder) {
         _sortOrder.update { order }
+    }
+
+    fun toggleFavoriteMode() {
+        _isFavoriteMode.update { !it }
     }
 
     fun repositorySearch(query: String) {
@@ -107,6 +130,7 @@ class SearchViewModel @Inject constructor(
 
 private val mockRepos = List(20) {
     GitHubRepositoryEntity(
+        id = it,
         name = "tinyTetrisC++",
         ownerName = "JetBrains",
         avatarUrl = "https://...",
