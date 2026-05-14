@@ -31,6 +31,11 @@
 - 用途: ローカルDB (SQLite)
 - 選定理由: リポジトリのローカル保存機能（お気に入り）実装のため
 
+### [Kotlin Coroutines / Flow](https://developer.android.com/kotlin/flow?hl=ja)
+- 用途: API通信・ローカルDBとの非同期処理
+- 選定理由: Flowを活用したホットストリームによるリポジトリリストの動的表示を狙いました。
+- RoomがFlowを返せる事に驚きましたが、今回の用途であればデータが動的に変わる事が無いため、実際は都度取得しても問題なかった様に思います。
+
 ### [Hilt](https://developer.android.com/training/dependency-injection/hilt-android?hl=ja)
 - 用途: 依存性注入による各クラスの疎結合化
 - 選定理由: 以前作成したポートフォリオにてモックデータの注入がし辛いと感じたため導入しました。
