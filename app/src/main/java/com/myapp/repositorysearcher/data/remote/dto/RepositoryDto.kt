@@ -1,4 +1,4 @@
-package com.myapp.repositorysearcher.data.model
+package com.myapp.repositorysearcher.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

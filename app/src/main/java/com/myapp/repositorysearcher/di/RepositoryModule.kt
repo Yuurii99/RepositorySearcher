@@ -1,7 +1,7 @@
 package com.myapp.repositorysearcher.di
 
 import com.myapp.repositorysearcher.data.repository.GitHubRepositoryImpl
-import com.myapp.repositorysearcher.domain.repository.GitHubRepository
+import com.myapp.repositorysearcher.data.repository.GitHubRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

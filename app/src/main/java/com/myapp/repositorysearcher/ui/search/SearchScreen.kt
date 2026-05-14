@@ -1,5 +1,6 @@
 package com.myapp.repositorysearcher.ui.search
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +46,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,15 +57,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.myapp.repositorysearcher.R
-import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
+import com.myapp.repositorysearcher.data.model.GitHubRepositoryEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,10 +75,17 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     onItemClick: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var showSortDialog by remember { mutableStateOf(false) }
     val isEditMode = (uiState as? SearchUiState.Success)?.isEditMode ?: false
     val isFavoriteMode = viewModel.isFavoriteMode.collectAsState().value
+
+    LaunchedEffect(Unit) {
+        viewModel.saveOrDeleteEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     BackHandler(enabled = isEditMode) {
         viewModel.clearEditUiState()
@@ -84,12 +94,16 @@ fun SearchScreen(
         topBar = {
             if (isEditMode) {
                 TopAppBar(
-                    title = { Text("${(uiState as SearchUiState.Success).selectedIds.size} 件選択中") },
+                    title = { Text(
+                        stringResource(
+                            R.string.select_item_count,
+                            (uiState as SearchUiState.Success).selectedIds.size
+                        )) },
                     navigationIcon = {
                         IconButton(onClick = { viewModel.clearEditUiState() }) {
                             Icon(
                                 painterResource(R.drawable.check),
-                                contentDescription = "編集モード解除",
+                                contentDescription = stringResource(R.string.edit_mode_cancel),
                             )
                         }
                     },
@@ -101,20 +115,32 @@ fun SearchScreen(
             }
         },
         floatingActionButton = {
-            if (isEditMode) {
-                FloatingActionButton(onClick = { viewModel.saveSelectedItems() }) {
-                    if (isFavoriteMode) {
-                        Icon(
-                            painterResource(R.drawable.delete),
-                            contentDescription = "お気に入りから削除"
-                        )
-                    } else {
-                        Icon(
-                            painterResource(R.drawable.favorite),
-                            contentDescription = "お気に入りに登録"
+            when {
+                isEditMode && isFavoriteMode -> { // DELETE
+                    FloatingActionButton(onClick = {
+                        viewModel.deleteSelectedItems(
+                            (uiState as SearchUiState.Success).repositories
                         )
                     }
-
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.delete),
+                            contentDescription = stringResource(R.string.delete_favorite)
+                        )
+                    }
+                }
+                isEditMode -> { // SAVE
+                    FloatingActionButton(onClick = {
+                        viewModel.saveSelectedItems(
+                            (uiState as SearchUiState.Success).repositories
+                        )
+                    }
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.favorite),
+                            contentDescription = stringResource(R.string.save_favorite)
+                        )
+                    }
                 }
             }
         },
@@ -149,12 +175,14 @@ fun SearchScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                if (isFavoriteMode) MaterialTheme.colorScheme.primaryContainer
-                                else Color.Transparent
-                            )
+                                    if (isFavoriteMode) MaterialTheme.colorScheme.primaryContainer
+                                    else Color.Transparent
+                                )
                         ) {
                             IconButton(
-                                onClick = { viewModel.toggleFavoriteMode() }
+                                onClick = {
+                                    viewModel.toggleFavoriteMode()
+                                }
                             ) {
                                 Icon(
                                     painterResource(R.drawable.favorite),
@@ -195,21 +223,35 @@ fun SearchScreen(
                 }
 
                 if (currentUiState is SearchUiState.Success) { // Lazy入れ子回避のためここでitems
-                    items(currentUiState.repositories, key = { it.id }) { repo ->
-                        RepositoryItem(
-                            repoItem = repo,
-                            isSelected = currentUiState.selectedIds.contains(repo.id),
-                            onItemClick = {
-                                if (currentUiState.isEditMode) {
-                                    viewModel.toggleSelection(repo.id)
-                                } else {
-                                    onItemClick(repo.repoUrl) // repoURLに遷移
-                                }
-                            },
-                            onLongClick = {
-                                viewModel.toggleSelection(repo.id)
+                    if (currentUiState.repositories.isEmpty()) {
+
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(stringResource(R.string.nothing_favorite_items))
                             }
-                        )
+                        }
+                    } else {
+                        items(currentUiState.repositories, key = { it.id }) { repo ->
+                            RepositoryItem(
+                                repoItem = repo,
+                                isSelected = currentUiState.selectedIds.contains(repo.id),
+                                onItemClick = {
+                                    if (currentUiState.isEditMode) {
+                                        viewModel.toggleSelection(repo.id)
+                                    } else {
+                                        onItemClick(repo.repoUrl) // repoURLに遷移
+                                    }
+                                },
+                                onLongClick = {
+                                    viewModel.toggleSelection(repo.id)
+                                }
+                            )
+                        }
                     }
                 } else {
                     item {
@@ -222,13 +264,13 @@ fun SearchScreen(
             AlertDialog(
                 onDismissRequest = { showSortDialog = false },
                 confirmButton = {
-                    TextButton(onClick = { showSortDialog = false }) { Text("閉じる") }
+                    TextButton(onClick = { showSortDialog = false }) { Text(stringResource(R.string.close)) }
                 },
-                title = { Text("ソート順を選択") },
+                title = { Text(stringResource(R.string.select_sort_order)) },
                 text = {
                     Column {
                         ListItem(
-                            headlineContent = { Text("スター数：多い順") },
+                            headlineContent = { Text(stringResource(R.string.sort_order_starsDESC)) },
                             leadingContent = {
                                 Icon(
                                     painterResource(R.drawable.arrow_downward),
@@ -244,7 +286,7 @@ fun SearchScreen(
                             )
                         )
                         ListItem(
-                            headlineContent = { Text("スター数：少ない順") },
+                            headlineContent = { Text(stringResource(R.string.sort_order_stars_ASC)) },
                             leadingContent = {
                                 Icon(
                                     painterResource(R.drawable.arrow_upward),
@@ -272,17 +314,21 @@ fun SearchContentView(
     isFavoriteMode: Boolean = false
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         when (uiState) {
-            is SearchUiState.Idle -> Text(
-                if (isFavoriteMode) "お気に入りしたリポジトリはありません"
-                else "検索ワードを入力してください"
+            is SearchUiState.Empty -> Text(
+                if (isFavoriteMode) stringResource(R.string.nothing_favorite_items)
+                else stringResource(R.string.nothing_search_result)
             )
             is SearchUiState.Loading -> CircularProgressIndicator()
-            is SearchUiState.Error -> Text("エラー: ${uiState.message}", color = Color.Red)
+            is SearchUiState.Error -> Text(stringResource(R.string.error, uiState.message), color = Color.Red)
+            is SearchUiState.Idle -> {Text(stringResource(R.string.idle_query))}
             is SearchUiState.Success -> {} // LazyColumn入れ子できない
         }
     }
@@ -298,7 +344,7 @@ fun QueryInputField(
     TextField(
         value = query,
         onValueChange = { query = it },
-        placeholder = { Text("リポジトリ検索ワード") },
+        placeholder = { Text(stringResource(R.string.query_placeholder)) },
         trailingIcon = {
             IconButton(onClick = {
                 onSearchClick(query)

@@ -1,6 +1,6 @@
-package com.myapp.repositorysearcher.data.api
+package com.myapp.repositorysearcher.data.remote.api
 
-import com.myapp.repositorysearcher.data.model.RepositorySearchResponse
+import com.myapp.repositorysearcher.data.remote.dto.RepositorySearchResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 

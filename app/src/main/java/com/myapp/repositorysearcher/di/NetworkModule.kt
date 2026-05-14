@@ -1,6 +1,6 @@
 package com.myapp.repositorysearcher.di
 
-import com.myapp.repositorysearcher.data.api.GitHubApi
+import com.myapp.repositorysearcher.data.remote.api.GitHubApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,7 +38,6 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(json: Json, okHttpClient: OkHttpClient): Retrofit {
         val contentType = "application/json".toMediaType()
-
         return Retrofit.Builder()
             .baseUrl("https://api.github.com/")
             .client(okHttpClient)

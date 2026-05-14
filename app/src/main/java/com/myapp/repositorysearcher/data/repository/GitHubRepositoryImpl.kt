@@ -1,9 +1,8 @@
 package com.myapp.repositorysearcher.data.repository
 
-import com.myapp.repositorysearcher.data.api.GitHubApi
-import com.myapp.repositorysearcher.data.model.RepositoryDto
-import com.myapp.repositorysearcher.domain.model.GitHubRepositoryEntity
-import com.myapp.repositorysearcher.domain.repository.GitHubRepository
+import com.myapp.repositorysearcher.data.model.GitHubRepositoryEntity
+import com.myapp.repositorysearcher.data.remote.api.GitHubApi
+import com.myapp.repositorysearcher.data.remote.dto.RepositoryDto
 import javax.inject.Inject
 
 

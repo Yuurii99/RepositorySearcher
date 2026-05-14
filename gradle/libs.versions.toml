@@ -19,6 +19,8 @@ coil3 = "3.4.0"
 loggingInterceptor = "5.3.2"
 coilNetWorkOkhttp = "3.4.0"
 animation = "1.11.1"
+room = "2.8.4"
+
 
 
 [libraries]
@@ -48,6 +50,10 @@ squareup-okhttp3 = { group = "com.squareup.okhttp3", name = "logging-interceptor
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coilNetWorkOkhttp"}
 coil-network-core = { group = "io.coil-kt.coil3", name = "coil-network-core", version.ref = "coil3"}
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
+
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 
 

@@ -19,8 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import com.myapp.repositorysearcher.R
 
 // webviewで実装
 
@@ -75,7 +77,7 @@ fun DetailScreen(
         })
     OpenBrowserAlert(
         showAlert,
-        { showAlert = it },
+        onAlertChange = { showAlert = it },
         pendingUrl,
         context
     )
@@ -91,8 +93,8 @@ fun OpenBrowserAlert(
     if (showAlert) {
         AlertDialog(
             onDismissRequest = { onAlertChange(false) },
-            title = { Text("外部サイトへ移動") },
-            text = { Text("外部ブラウザでリンクを開きますか？\n$pendingUrl") },
+            title = { Text(stringResource(R.string.open_browser)) },
+            text = { Text(stringResource(R.string.open_browser_link, pendingUrl)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -100,14 +102,14 @@ fun OpenBrowserAlert(
                         onAlertChange(false)
                     })
                 {
-                    Text("開く")
+                    Text(stringResource(R.string.open))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { onAlertChange(false) })
                 {
-                    Text("キャンセル")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

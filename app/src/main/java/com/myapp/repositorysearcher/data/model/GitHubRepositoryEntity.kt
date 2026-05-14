@@ -1,9 +1,13 @@
-package com.myapp.repositorysearcher.domain.model
+package com.myapp.repositorysearcher.data.model
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
 // 「検索結果リスト」の要素には、各リポジトリの「リポジトリ名」・「作者/組織名」・「言語名」・「スター数」が表示されていること。
+@Entity(tableName = "favorite_repositories")
 data class GitHubRepositoryEntity(
     // アプリ内専用のモデル（ドメイン層）
-    val id: Int, // リポID
+    @PrimaryKey val id: Int, // リポID
     val name: String, // リポジトリ名
     val ownerName: String, // 作者名
     val avatarUrl: String, // アバター画像URL
