@@ -46,4 +46,10 @@
 ### [Kotlin serialization](https://github.com/Kotlin/kotlinx.serialization/blob/master/docs/serialization-guide.md)
 - 用途: JSONデシリアライズ
 - 選定理由: APIから受け取ったJSONのデシリアライズのため
-  
+
+## アプリサンプル
+<img height="600" src="https://github.com/user-attachments/assets/b15f625d-4e1c-4830-9d25-b20a860c012c" />
+<img height="600" src="https://github.com/user-attachments/assets/e8d755bb-0279-4964-8c4c-48884c659c62" />
+<img height="600" src="https://github.com/user-attachments/assets/64cc9c74-e95c-4698-a033-cd1ed7a0633b" />
+
+
