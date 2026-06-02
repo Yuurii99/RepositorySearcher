@@ -24,7 +24,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import com.myapp.repositorysearcher.R
 
-// webviewで実装
+class WebViewController(val webView: WebView?) {
+    fun handleBack(goBackSearchScreen: () -> Unit) {
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            goBackSearchScreen()
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
@@ -34,11 +42,14 @@ fun DetailScreen(
     goBackSearchScreen: () -> Unit
 ) {
     val context = LocalContext.current
-    var onBack by remember { mutableStateOf(false) }
     var showAlert by remember { mutableStateOf(false) }
     var pendingUrl by remember { mutableStateOf("") }
 
-    BackHandler(enabled = true, onBack = { onBack = true })
+    var controller by remember { mutableStateOf(WebViewController(null)) }
+
+    BackHandler(enabled = true) {
+        controller.handleBack(goBackSearchScreen)
+    }
 
     AndroidView(
         modifier = Modifier
@@ -63,18 +74,12 @@ fun DetailScreen(
                 }
                 settings.javaScriptEnabled = true
                 loadUrl(url)
+            }.also {
+                controller = WebViewController(it)
             }
         }, update = { webView ->
-            when {
-                onBack && webView.canGoBack() -> {
-                    onBack = false
-                    webView.goBack()
-                }
-                onBack && !webView.canGoBack() -> {
-                    goBackSearchScreen()
-                }
-            }
-        })
+        }
+    )
     OpenBrowserAlert(
         showAlert,
         onAlertChange = { showAlert = it },
